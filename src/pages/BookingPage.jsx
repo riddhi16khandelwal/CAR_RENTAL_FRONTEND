@@ -1,13 +1,11 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const BookingPage = () => {
+const BookingPage = ({ car }) => {
   const [qr, setQr] = useState("");
   const [bookingId, setBookingId] = useState("");
   const [txnId, setTxnId] = useState("");
 
-  // 🔥 IMPORTANT (replace these)
-  const carId = "PUT_REAL_CAR_ID_HERE";
   const pickupDate = "2026-04-05";
   const returnDate = "2026-04-07";
 
@@ -15,9 +13,9 @@ const BookingPage = () => {
   const handleBooking = async () => {
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/bookings/create",
+        `${import.meta.env.VITE_API_URL}/api/bookings/create`,
         {
-          car: carId,
+          car: car._id, // ✅ FIXED (dynamic id)
           pickupDate,
           returnDate,
         },
@@ -29,8 +27,32 @@ const BookingPage = () => {
       );
 
       if (res.data.success) {
-        setQr(res.data.qr);
         setBookingId(res.data.bookingId);
+        alert("Booking Created ✅");
+      } else {
+        alert(res.data.message);
+      }
+    } catch (err) {
+      console.log(err);
+      alert("Booking failed ❌");
+    }
+  };
+
+  // 💳 GENERATE QR
+  const generateQR = async () => {
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/bookings/generate-qr`,
+        { bookingId },
+        {
+          headers: {
+            token: localStorage.getItem("token"),
+          },
+        }
+      );
+
+      if (res.data.success) {
+        setQr(res.data.qr);
       } else {
         alert(res.data.message);
       }
@@ -43,7 +65,7 @@ const BookingPage = () => {
   const confirmPayment = async () => {
     try {
       const res = await axios.post(
-        "http://localhost:5000/api/bookings/verify-payment",
+        `${import.meta.env.VITE_API_URL}/api/bookings/verify-payment`,
         {
           bookingId,
           transactionId: txnId,
@@ -68,6 +90,15 @@ const BookingPage = () => {
       <button onClick={handleBooking}>
         Book Car
       </button>
+
+      {bookingId && (
+        <>
+          <br /><br />
+          <button onClick={generateQR}>
+            Generate QR
+          </button>
+        </>
+      )}
 
       {qr && (
         <>
